@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Sign Up - Vaultly</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/png">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta name="description" content="Create your secure Vaultly account">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <h1>🔐 Vaultly</h1>
+                <p>Create your secure account</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" id="signupForm" novalidate>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="username" 
+                           name="username" 
+                           placeholder="Choose a username"
+                           required 
+                           autofocus
+                           minlength="3"
+                           maxlength="20">
+                    <div class="field-hint" id="usernameHint"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" 
+                           class="form-control" 
+                           id="email" 
+                           name="email" 
+                           placeholder="Enter your email"
+                           required>
+                    <div class="field-hint" id="emailHint"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" 
+                           class="form-control" 
+                           id="password" 
+                           name="password" 
+                           placeholder="Create a strong password"
+                           required
+                           minlength="6">
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" 
+                           class="form-control" 
+                           id="confirm_password" 
+                           name="confirm_password" 
+                           placeholder="Confirm your password"
+                           required>
+                    <div class="field-hint" id="confirmHint"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="signupBtn">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="form-footer">
+                <p>Already have an account?</p>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">
+                    Sign In
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .field-hint, .password-strength {
+            font-size: 12px;
+            margin-top: 6px;
+            min-height: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .field-hint.error {
+            color: var(--error);
+        }
+
+        .field-hint.success {
+            color: var(--success);
+        }
+
+        .password-strength {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .strength-weak .strength-fill {
+            width: 33%;
+            background: var(--error);
+        }
+
+        .strength-medium .strength-fill {
+            width: 66%;
+            background: var(--warning);
+        }
+
+        .strength-strong .strength-fill {
+            width: 100%;
+            background: var(--success);
+        }
+
+        .strength-text {
+            font-size: 12px;
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        .form-control.error {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .form-control.success {
+            border-color: var(--success);
+        }
+    </style>
+
+    <script>
+        // Real-time validation
+        const form = document.getElementById('signupForm');
+        const usernameField = document.getElementById('username');
+        const emailField = document.getElementById('email');
+        const passwordField = document.getElementById('password');
+        const confirmField = document.getElementById('confirm_password');
+
+        // Username validation
+        usernameField.addEventListener('input', function() {
+            const value = this.value.trim();
+            const hint = document.getElementById('usernameHint');
+            
+            if (value.length < 3) {
+                hint.textContent = 'Username must be at least 3 characters';
+                hint.className = 'field-hint error';
+                this.classList.add('error');
+                this.classList.remove('success');
+            } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                hint.textContent = 'Username can only contain letters, numbers, and underscores';
+                hint.className = 'field-hint error';
+                this.classList.add('error');
+                this.classList.remove('success');
+            } else {
+                hint.textContent = 'Username looks good!';
+                hint.className = 'field-hint success';
+                this.classList.remove('error');
+                this.classList.add('success');
+            }
+        });
+
+        // Email validation
+        emailField.addEventListener('input', function() {
+            const value = this.value.trim();
+            const hint = document.getElementById('emailHint');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!value) {
+                hint.textContent = '';
+                this.classList.remove('error', 'success');
+            } else if (!emailRegex.test(value)) {
+                hint.textContent = 'Please enter a valid email address';
+                hint.className = 'field-hint error';
+                this.classList.add('error');
+                this.classList.remove('success');
+            } else {
+                hint.textContent = 'Email looks good!';
+                hint.className = 'field-hint success';
+                this.classList.remove('error');
+                this.classList.add('success');
+            }
+        });
+
+        // Password strength validation
+        passwordField.addEventListener('input', function() {
+            const value = this.value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            
+            if (!value) {
+                strengthDiv.innerHTML = '';
+                return;
+            }
+
+            const strength = calculatePasswordStrength(value);
+            const strengthClass = strength.score < 3 ? 'strength-weak' : 
+                                 strength.score < 4 ? 'strength-medium' : 'strength-strong';
+            const strengthText = strength.score < 3 ? 'Weak' : 
+                                strength.score < 4 ? 'Medium' : 'Strong';
+
+            strengthDiv.innerHTML = `
+                <div class="strength-bar ${strengthClass}">
+                    <div class="strength-fill"></div>
+                </div>
+                <span class="strength-text" style="color: ${strength.score < 3 ? 'var(--error)' : strength.score < 4 ? 'var(--warning)' : 'var(--success)'}">${strengthText}</span>
+            `;
+
+            // Validate confirm password when password changes
+            if (confirmField.value) {
+                validateConfirmPassword();
+            }
+        });
+
+        // Confirm password validation
+        confirmField.addEventListener('input', validateConfirmPassword);
+
+        function validateConfirmPassword() {
+            const password = passwordField.value;
+            const confirm = confirmField.value;
+            const hint = document.getElementById('confirmHint');
+            
+            if (!confirm) {
+                hint.textContent = '';
+                confirmField.classList.remove('error', 'success');
+            } else if (password !== confirm) {
+                hint.textContent = 'Passwords do not match';
+                hint.className = 'field-hint error';
+                confirmField.classList.add('error');
+                confirmField.classList.remove('success');
+            } else {
+                hint.textContent = 'Passwords match!';
+                hint.className = 'field-hint success';
+                confirmField.classList.remove('error');
+                confirmField.classList.add('success');
+            }
+        }
+
+        function calculatePasswordStrength(password) {
+            let score = 0;
+            const checks = {
+                length: password.length >= 8,
+                lowercase: /[a-z]/.test(password),
+                uppercase: /[A-Z]/.test(password),
+                numbers: /\d/.test(password),
+                symbols: /[^A-Za-z0-9]/.test(password)
+            };
+
+            // Basic length check
+            if (password.length >= 6) score += 1;
+            if (password.length >= 8) score += 1;
+            
+            // Character variety
+            if (checks.lowercase) score += 1;
+            if (checks.uppercase) score += 1;
+            if (checks.numbers) score += 1;
+            if (checks.symbols) score += 1;
+
+            return { score: Math.min(score, 5), checks };
+        }
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            const btn = document.getElementById('signupBtn');
+            const username = usernameField.value.trim();
+            const email = emailField.value.trim();
+            const password = passwordField.value;
+            const confirm = confirmField.value;
+
+            // Basic validation
+            if (!username || username.length < 3) {
+                e.preventDefault();
+                showToast('Username must be at least 3 characters', 'error');
+                usernameField.focus();
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                e.preventDefault();
+                showToast('Username can only contain letters, numbers, and underscores', 'error');
+                usernameField.focus();
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                e.preventDefault();
+                showToast('Please enter a valid email address', 'error');
+                emailField.focus();
+                return;
+            }
+
+            if (!password || password.length < 6) {
+                e.preventDefault();
+                showToast('Password must be at least 6 characters', 'error');
+                passwordField.focus();
+                return;
+            }
+
+            if (password !== confirm) {
+                e.preventDefault();
+                showToast('Passwords do not match', 'error');
+                confirmField.focus();
+                return;
+            }
+
+            // Show loading state
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+        });
+
+        // Simple toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `flash-message flash-${type}`;
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1000';
+            toast.style.maxWidth = '300px';
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Welcome - Vaultly</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}" type="image/png">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta name="description" content="Welcome to your secure Vaultly dashboard">
+</head>
+<body>
+    <div class="home-container">
+        <div class="home-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="welcome-section">
+                <h1 class="welcome-title">Welcome back, {{ username }}! 👋</h1>
+                <p class="welcome-subtitle">
+                    Your secure digital vault is ready.
+                </p>
+            </div>
+
+           
+
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="syncStatus">✓</div>
+                        <div class="stat-label">Sync Status</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="user-actions">
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary logout-btn" onclick="return confirm('Are you sure you want to sign out?')">
+                    Sign Out
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <span>📱 Install Vaultly for quick access</span>
+        <button onclick="installApp()">Install</button>
+        <button onclick="dismissInstall()">Dismiss</button>
+    </div>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stats-section {
+            margin: 48px 0;
+            padding: 32px;
+            background: var(--light-gray);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .quick-actions {
+            margin: 48px 0;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .action-btn {
+            padding: 20px 24px;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .action-btn.secondary {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--border);
+        }
+
+        .action-btn.secondary:hover {
+            border-color: var(--primary);
+            background: var(--light-gray);
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            font-size: 18px;
+        }
+
+        .user-actions {
+            margin-top: 48px;
+            text-align: center;
+        }
+
+        .welcome-section {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .feature-grid {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .stats-section {
+            animation: fadeInUp 1s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+            }
+
+            .stat-number {
+                font-size: 24px;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .action-btn {
+                padding: 16px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+
+    <script>
+        // Animate counters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            animateCounter('itemCount', 0, 150);
+            animateSecurityScore();
+        });
+
+        function animateCounter(elementId, start, end) {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const startTime = performance.now();
+            
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                
+                element.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                }
+            }
+            
+            requestAnimationFrame(updateCounter);
+        }
+
+        function animateSecurityScore() {
+            const element = document.getElementById('securityScore');
+            let current = 0;
+            const target = 98;
+            const increment = 2;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current + '%';
+                
+                if (current >= target) {
+                    element.textContent = target + '%';
+                    clearInterval(timer);
+                }
+            }, 50);
+        }
+
+        // Simple toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `flash-message flash-${type}`;
+            toast.textContent = message;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '1000';
+            toast.style.maxWidth = '300px';
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // PWA Installation
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').classList.add('show');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').classList.remove('show');
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.remove('show');
+        }
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // Add some interactive feedback to feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(-4px) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
