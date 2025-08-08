@@ -1,57 +1,72 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
+import psycopg2
+from psycopg2 import sql, errors
 import hashlib
 import os
 import secrets
+from dotenv import load_dotenv
 
-# Paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "users.db")
+# Load environment variables from .env (locally only)
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
-# Database setup
+# Database connection function
+def get_db_connection():
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+# Create table if not exists
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    """)
     conn.commit()
+    cur.close()
     conn.close()
 
+# Password hashing
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Verify login
 def verify_user(username, password):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
-    result = cursor.fetchone()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
+    result = cur.fetchone()
+    cur.close()
     conn.close()
     return result and result[0] == hash_password(password)
 
+# Create new user
 def create_user(username, email, password):
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
             (username, email, hash_password(password))
         )
         conn.commit()
+        cur.close()
         conn.close()
         return True
-    except sqlite3.IntegrityError:
+    except errors.UniqueViolation:
+        return False
+    except psycopg2.IntegrityError:
         return False
 
+# Routes
 @app.route('/')
 def index():
     if 'username' in session:
